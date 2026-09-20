@@ -1,0 +1,8 @@
+__pycache__/
+*.quarto_ipynb*
+figure_pdfs
+validation_results/
+*.DS_Store
+*.Rhistory
+/.quarto/
+**/*.quarto_ipynb

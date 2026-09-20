@@ -1,0 +1,495 @@
+---
+title: "NHANES multivariate copula"
+format: html
+date: "today"
+---
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(survey)
+library(copula)
+library(openxlsx)
+library(jtools)
+library(here)
+library(jsonlite)
+library(purrr)
+library(dplyr)
+library(readr)
+# also using the `metan::mantel_test()`
+# but loading metan masks a lot of functions
+
+data_dir <- here::here("data_and_models/nhanes_data_cohorts")
+set.seed(123)
+```
+
+Read the joined NHANES dataset produced by `NHANES_download.qmd`.
+
+```{r}
+#| label: load_nhanes
+nhanes_data <- read_csv(file.path(data_dir, "nhanes.csv"))
+```
+
+```{r}
+# adjust weights and filter data
+nhanes <- nhanes_data |>
+  mutate(
+    WTMEC6YR = WTMEC2YR / 3,
+    female = if_else(RIAGENDR == 2, 1, 0),
+    black = if_else(RIDRETH3 == 4, 1, 0),
+    white = if_else(RIDRETH3 == 3, 1, 0),
+    place = if_else((HUQ030 != 2) & (HUQ030 != 7), 1, 0),
+    insurance = if_else(HIQ011 == 1, 1, 0),
+    treated = if_else(BPQ050A == 1, 1, 0),
+    poor = if_else(INDFMPIR < 1, 1, 0),
+    education_L12 = ifelse(DMDEDUC2 == 1 | DMDEDUC2 == 2, 1, 0),
+    rented = ifelse(HOQ065 == 2, 1, 0),
+    notemployed = ifelse((INQ020 == 2 & INQ012 == 2) & RIDAGEYR < 65, 1, 0),
+    crowded = ifelse(DMDHHSIZ - HOD050 > 0, 1, 0),
+    singlefamily = ifelse((DMDHHSZA > 0 | DMDHHSZB > 0) & (DMDMARTL == 2 |
+      DMDMARTL == 3 |
+      DMDMARTL == 4 |
+      DMDMARTL == 5), 1, 0)
+  ) |>
+  replace_na(list(treated = 0)) |>
+  filter(!is.na(RIDAGEYR), RIDAGEYR > 18) |>
+  # self-reported number of times receiving healthcare over the past year
+  # we are assuming equal chance of each number when reporting a range
+  mutate(visits = case_when(
+    HUQ051 == 0 ~ 0,
+    HUQ051 == 1 ~ 1,
+    HUQ051 == 2 ~ sample(c(2, 3), n(), replace = TRUE), # self-reported 2 to 3
+    HUQ051 == 3 ~ sample(c(4, 5), n(), replace = TRUE), # self-reported 4 to 5
+    HUQ051 == 4 ~ sample(c(6, 7), n(), replace = TRUE), # self-reported 6 to 7
+    HUQ051 == 5 ~ sample(c(8, 9), n(), replace = TRUE), # self-reported 8 to 9
+    HUQ051 == 6 ~ sample(c(10, 11, 12), n(), replace = TRUE), # self-reported 10 to 12
+    HUQ051 == 7 ~ sample(c(13, 14, 15), n(), replace = TRUE), # self-reported 13 to 15
+    HUQ051 == 8 ~ sample(c(16, 17, 18), n(), replace = TRUE), # self-reported 16 or more
+    HUQ051 == 77 ~ 0, # refused
+    HUQ051 == 99 ~ 0 # don't know
+  )) |>
+  mutate(across(c(BPXSY1, BPXDI1), ~ na_if(.x, 0))) |>
+  filter(treated == 0, (black == 1 | white == 1))
+
+nhanes_svy <- svydesign(
+  data = nhanes,
+  ids = ~SDMVPSU,
+  strata = ~SDMVSTRA,
+  weights = ~WTMEC6YR,
+  nest = TRUE
+)
+```
+
+```{r}
+#not going to also filter by individuals with or without treatment
+nhanes2 <- nhanes_data |>
+  mutate(
+    WTMEC6YR = WTMEC2YR / 3,
+    female = if_else(RIAGENDR == 2, 1, 0),
+    black = if_else(RIDRETH3 == 4, 1, 0),
+    white = if_else(RIDRETH3 == 3, 1, 0),
+    place = if_else((HUQ030 != 2) & (HUQ030 != 7), 1, 0),
+    insurance = if_else(HIQ011 == 1, 1, 0),
+    treated = if_else(BPQ050A == 1, 1, 0),
+    poor = if_else(INDFMPIR < 1, 1, 0),
+    education_L12 = ifelse(DMDEDUC2 == 1 | DMDEDUC2 == 2, 1, 0),
+    rented = ifelse(HOQ065 == 2, 1, 0),
+    notemployed = ifelse((INQ020 == 2 & INQ012 == 2) & RIDAGEYR < 65, 1, 0),
+    crowded = ifelse(DMDHHSIZ - HOD050 > 0, 1, 0),
+    singlefamily = ifelse((DMDHHSZA > 0 | DMDHHSZB > 0) & (DMDMARTL == 2 |
+      DMDMARTL == 3 |
+      DMDMARTL == 4 |
+      DMDMARTL == 5), 1, 0)
+  ) |>
+  replace_na(list(treated = 0)) |>
+  filter(!is.na(RIDAGEYR), RIDAGEYR > 18) |>
+  mutate(visits = case_when(
+    HUQ051 == 0 ~ 0,
+    HUQ051 == 1 ~ 1,
+    HUQ051 == 2 ~ sample(c(2, 3), n(), replace = TRUE), # self-reported 2 to 3
+    HUQ051 == 3 ~ sample(c(4, 5), n(), replace = TRUE), # self-reported 4 to 5
+    HUQ051 == 4 ~ sample(c(6, 7), n(), replace = TRUE), # self-reported 6 to 7
+    HUQ051 == 5 ~ sample(c(8, 9), n(), replace = TRUE), # self-reported 8 to 9
+    HUQ051 == 6 ~ sample(c(10, 11, 12), n(), replace = TRUE), # self-reported 10 to 12
+    HUQ051 == 7 ~ sample(c(13, 14, 15), n(), replace = TRUE), # self-reported 13 to 15
+    HUQ051 == 8 ~ sample(c(16, 17, 18), n(), replace = TRUE), # self-reported 16 or more
+    HUQ051 == 77 ~ 0, # refused
+    HUQ051 == 99 ~ 0 # don't know
+  )) |>
+  mutate(across(c(BPXSY1, BPXDI1), ~ na_if(.x, 0))) |>
+  filter(black == 1 | white == 1)
+
+nhanes_svy2 <- svydesign(
+  data = nhanes2,
+  ids = ~SDMVPSU,
+  strata = ~SDMVSTRA,
+  weights = ~WTMEC6YR,
+  nest = TRUE
+)
+# Define 5-year age bins: 40-44, 45-49, 50-54, ...
+max_age <- max(nhanes$RIDAGEYR, na.rm = TRUE)
+age_breaks <- seq(40, floor(max_age / 5) * 5 + 5, by = 5)
+age_labels <- paste0(age_breaks[-length(age_breaks)], "-", age_breaks[-1] - 1)
+
+# Restrict to age >= 40 and add age-group variable inside the survey design
+nhanes_svy_40plus <- subset(nhanes_svy2, RIDAGEYR >= 40)
+
+nhanes_svy_40plus <- update(
+  nhanes_svy_40plus,
+  age_group = cut(
+    RIDAGEYR,
+    breaks = age_breaks,
+    labels = age_labels,
+    right = FALSE,
+    include.lowest = TRUE
+  )
+)
+
+# Survey-weighted mean SBP and DBP by age group
+bp_means_by_age <- svyby(
+  ~BPXSY1 + BPXDI1,
+  ~age_group,
+  design = nhanes_svy_40plus,
+  FUN = svymean,
+  na.rm = TRUE,
+  vartype = "se"
+) |>
+  as.data.frame() |>
+  rename(
+    mean_sbp = BPXSY1,
+    mean_dbp = BPXDI1,
+    se_sbp = se.BPXSY1,
+    se_dbp = se.BPXDI1
+  )
+
+print(bp_means_by_age)
+
+write.csv(bp_means_by_age, file.path(here::here("data_and_models"), "nhanes_inputs/bp_means_by_age_5yr.csv"))
+```
+
+
+```{r}
+survey_corr <- svycor(
+  ~ RIDAGEYR + female + black + place + insurance + INDFMPIR + BPXSY1 + BPXDI1 +
+    poor + education_L12 + rented + notemployed + crowded + singlefamily + visits,
+  na.rm = TRUE,
+  design = nhanes_svy
+)
+
+survey_corr <- survey_corr$cors
+```
+
+```{r}
+female_prop <- svymean(~female, nhanes_svy)[[1]]
+black_prop <- svymean(~black, nhanes_svy)[[1]]
+white_prop <- svymean(~white, nhanes_svy)[[1]]
+place_prop <- svymean(~place, nhanes_svy)[[1]]
+insurance_prop <- svymean(~insurance, nhanes_svy)[[1]]
+poor_prop <- svymean(~poor, nhanes_svy, na.rm = TRUE)[[1]]
+education_L12_prop <- svymean(~education_L12, nhanes_svy, na.rm = TRUE)[[1]]
+rented_prop <- svymean(~rented, nhanes_svy, na.rm = TRUE)[[1]]
+notemployed_prop <- svymean(~notemployed, nhanes_svy, na.rm = TRUE)[[1]]
+crowded_prop <- svymean(~crowded, nhanes_svy, na.rm = TRUE)[[1]]
+singlefamily_prop <- svymean(~singlefamily, nhanes_svy, na.rm = TRUE)[[1]]
+
+age_min <- 19
+age_max <- 80
+
+BPXSY1_mean <- svymean(~BPXSY1, nhanes_svy, na.rm = TRUE)[[1]]
+BPXSY1_var <- svyvar(~BPXSY1, nhanes_svy, na.rm = TRUE)[[1]]
+BPXDI1_mean <- svymean(~BPXDI1, nhanes_svy, na.rm = TRUE)[[1]]
+BPXDI1_var <- svyvar(~BPXDI1, nhanes_svy, na.rm = TRUE)[[1]]
+RIDAGEYR_mean <- svymean(~RIDAGEYR, nhanes_svy)[[1]]
+RIDAGEYR_var <- svyvar(~RIDAGEYR, nhanes_svy)[[1]]
+INDFMPIR_mean <- svymean(~INDFMPIR, nhanes_svy, na.rm = TRUE)[[1]]
+INDFMPIR_var <- svyvar(~INDFMPIR, nhanes_svy, na.rm = TRUE)[[1]]
+visits_mean <- svymean(~visits, nhanes_svy, na.rm = TRUE)[[1]]
+visits_var <- svyvar(~visits, nhanes_svy, na.rm = TRUE)[[1]]
+```
+
+## Distribution for family income to poverty ratio
+
+```{r}
+svyhist(~INDFMPIR, nhanes_svy)
+# shape and rate determined from trial and error to match the distribution above
+poverty_ratio_shape <- 3
+poverty_ratio_rate <- 0.75
+betas <- rgamma(1000, shape = poverty_ratio_shape, rate = poverty_ratio_rate)
+betas <- if_else(betas > 5, 5, betas)
+hist(betas, freq = FALSE)
+```
+
+## Distribution for systolic and diastolic blood pressure
+
+```{r}
+svyhist(~BPXDI1, nhanes_svy)
+hist(rnorm(1000, mean = BPXDI1_mean, sd = sqrt(BPXDI1_var)))
+
+svyhist(~BPXSY1, nhanes_svy)
+hist(rnorm(1000, mean = BPXSY1_mean, sd = sqrt(BPXSY1_var)))
+```
+## Distribution of visits in the past year
+```{r}
+svyhist(~visits, nhanes_svy)
+visits_size <- 5
+# size and mu determined from trial and error to match the distribution above
+betas <- rnbinom(1000, size = visits_size, mu = visits_mean)
+var(betas)
+hist(betas, freq = FALSE)
+```
+I slightly strengthened the correlations, as the simulated cohort output 
+correlations were not matching the NHANES correlations
+```{r}
+orig_correlations <- survey_corr[lower.tri(survey_corr)]
+correlations <- survey_corr[lower.tri(survey_corr)]
+change_df <- read_csv(file.path(here::here("data_and_models"), "nhanes_inputs/change_corr.csv"), show_col_types = FALSE)
+change_list <- change_df$index
+change_add <- change_df$addition
+
+# Find the indices of correlations that are in change_list
+indices <- match(change_list, seq_along(correlations))
+
+# Directly add the corresponding values from change_add
+correlations[indices] <- correlations[indices] + change_add
+```
+
+Fit multivariate normal copula to marginal distributions 
+and survey correlation matrix
+
+```{r}
+myCop <- normalCopula(param = correlations, dim = 15, dispstr = "un")
+myMvd <- mvdc(
+  copula = myCop,
+  margins = c(
+    "unif", "binom", "binom",
+    "binom", "binom", "gamma",
+    "norm", "norm", "binom", "binom",
+    "binom", "binom", "binom", "binom",
+    "nbinom"
+  ),
+  paramMargins = list(
+    # age
+    list(min = age_min, max = age_max),
+    # female
+    list(size = 1, prob = female_prop),
+    # black
+    list(size = 1, prob = black_prop),
+    # place
+    list(size = 1, prob = place_prop),
+    # insurance
+    list(size = 1, prob = insurance_prop),
+    # Poverty ratio
+    list(shape = poverty_ratio_shape, rate = poverty_ratio_rate),
+    # systolic
+    list(mean = BPXSY1_mean, sd = sqrt(BPXSY1_var)),
+    # diastolic
+    list(mean = BPXDI1_mean, sd = sqrt(BPXDI1_var)),
+    # poor
+    list(size = 1, prob = poor_prop),
+    # education_L12
+    list(size = 1, prob = education_L12_prop),
+    # rented
+    list(size = 1, prob = rented_prop),
+    # notemployed
+    list(size = 1, prob = notemployed_prop),
+    # crowded
+    list(size = 1, prob = crowded_prop),
+    # singlefamily
+    list(size = 1, prob = singlefamily_prop),
+    # visits
+    list(size = 5, mu = visits_mean)
+  )
+)
+
+simulated_data <- rMvdc(1000000, myMvd)
+colnames(simulated_data) <- c(
+  "age", "female", "black", "place",
+  "insurance", "povertyratio",
+  "systolicbp", "diastolicbp", "poor",
+  "educationL12", "rented", "notemployed",
+  "crowded", "singlefamily", "visits"
+)
+
+simulated_df <- as_tibble(simulated_data) |>
+  mutate(povertyratio = if_else(povertyratio > 5, 5, povertyratio))
+summary(simulated_df)
+```
+
+
+```{r}
+if (!dir.exists(file.path(here::here("data_and_models"), "nhanes_inputs/copula_inputs/"))) {
+  dir.create(file.path(here::here("data_and_models"), "nhanes_inputs/copula_inputs/"))
+}
+if (!dir.exists(file.path(here::here("data_and_models"), "nhanes_inputs/copula_outputs/"))) {
+  dir.create(file.path(here::here("data_and_models"), "nhanes_inputs/copula_outputs/"))
+}
+```
+
+Save the parameters to be read into quarto document
+```{r}
+variables <- list(
+  female = list(data = female_prop, file = "female_prop.json"),
+  black = list(data = black_prop, file = "black_prop.json"),
+  place = list(data = place_prop, file = "place_prop.json"),
+  insurance = list(data = insurance_prop, file = "insurance_prop.json"),
+  poor = list(data = poor_prop, file = "poor_prop.json"),
+  education_L12 = list(data = education_L12_prop, file = "education_L12_prop.json"),
+  rented = list(data = rented_prop, file = "rented_prop.json"),
+  notemployed = list(data = notemployed_prop, file = "notemployed_prop.json"),
+  crowded = list(data = crowded_prop, file = "crowded_prop.json"),
+  singlefamily = list(data = singlefamily_prop, file = "singlefamily_prop.json"),
+  age_min = list(data = age_min, file = "age_min.json"),
+  age_max = list(data = age_max, file = "age_max.json"),
+  poverty_ratio_shape = list(data = poverty_ratio_shape, file = "poverty_ratio_shape.json"),
+  poverty_ratio_rate = list(data = poverty_ratio_rate, file = "poverty_ratio_rate.json"),
+  RIDAGEYR_mean = list(data = RIDAGEYR_mean, file = "age_mean.json"),
+  age_std = list(data = sqrt(RIDAGEYR_var), file = "age_std.json"),
+  INDFMPIR_mean = list(data = INDFMPIR_mean, file = "poverty_ratio_mean.json"),
+  poverty_ratio_std = list(data = sqrt(INDFMPIR_var), file = "poverty_ratio_std.json"),
+  BPXSY1_mean = list(data = BPXSY1_mean, file = "systolic_mean.json"),
+  systolic_std = list(data = sqrt(BPXSY1_var), file = "systolic_std.json"),
+  BPXDI1_mean = list(data = BPXDI1_mean, file = "diastolic_mean.json"),
+  diastolic_std = list(data = sqrt(BPXDI1_var), file = "diastolic_std.json"),
+  visits_mean = list(data = visits_mean, file = "visits_mean.json"),
+  visits_std = list(data = sqrt(visits_var), file = "visits_std.json"),
+  visits_size = list(data = visits_size, file = "visits_size.json")
+)
+
+write_variable_json <- function(variable, base_path) {
+  write_json(variable$data, file.path(base_path, variable$file))
+}
+
+base_path <- here::here("data_and_models", "nhanes_inputs", "copula_inputs")
+
+walk(variables, write_variable_json, base_path = base_path)
+```
+
+Save the simulated cohort summary statistics
+```{r}
+# Calculate means and standard deviations
+stats <- simulated_df |>
+  summarise(across(everything(), list(mean = mean, std = sd))) |>
+  pivot_longer(cols = everything(), names_to = c("variable", ".value"), names_sep = "_") |>
+  (\(df) split(df, df$variable))() |>
+  lapply(\(x) list(mean = x$mean, std = x$std))
+
+# Convert to JSON
+stats_json <- toJSON(stats, pretty = TRUE)
+
+write(stats_json, file.path(here::here("data_and_models"), "nhanes_inputs/copula_outputs/summary_stats.json"))
+```
+
+Mantel test to test similarity between original NHANES and simulated data correlation matrices
+```{r}
+metan::mantel_test(survey_corr, cor(simulated_data))
+```
+Output correlation matrices from NHANES and simulated cohort
+```{r}
+## correlations from NHANES data
+survey_corr_long <- survey_corr |>
+  as.data.frame() |>
+  rownames_to_column("var1") |>
+  pivot_longer(
+    -var1,
+    names_to = "var2",
+    values_to = "correlation"
+  )
+rename_var <- function(x) {
+  case_match(
+    as.character(x),
+    "RIDAGEYR" ~ "age",
+    "INDFMPIR" ~ "povertyratio",
+    "BPXSY1" ~ "systolicbp",
+    "BPXDI1" ~ "diastolicbp",
+    "education_L12" ~ "educationL12",
+    .default = as.character(x)
+  )
+}
+
+survey_corr_long <- survey_corr_long |>
+  mutate(across(c(var1, var2), rename_var))
+
+# Correlations from simulated copula data
+cor_long <- cor(simulated_data) |>
+  as.data.frame() |>
+  rownames_to_column("var1") |>
+  pivot_longer(
+    -var1,
+    names_to = "var2",
+    values_to = "correlation"
+  )
+
+combined_correlations <- survey_corr_long |>
+  left_join(cor_long, by = c("var1", "var2"))
+
+combined_correlations <- combined_correlations |>
+  filter(var1 != var2) |>
+  distinct(correlation.x, correlation.y, .keep_all = TRUE)
+
+combined_correlations
+write.csv(combined_correlations, file.path(here::here("data_and_models"), "nhanes_inputs/copula_outputs/correlations.csv"))
+```
+
+Sample cohort (50,000 NHB and 50,000 NHW)
+```{r}
+df_around_40 <- simulated_df |>
+  filter(between(age, 35, 45))
+
+sample_by_race <- function(.df, n) {
+  .df |>
+    group_by(black) |>
+    sample_n(size = n, replace = TRUE) |>
+    ungroup()
+}
+
+combined_df <- sample_by_race(df_around_40, 50000)
+
+combined_df |>
+  group_by(black) |>
+  group_map(summary)
+
+write_csv(
+  combined_df,
+  file.path(data_dir, "NHANES_final_cohort.csv")
+)
+```
+
+
+```{r}
+# Calculate means and standard deviations
+cohort_stats <- combined_df |>
+  group_by(black) |>
+  summarise(across(everything(), list(mean = mean, std = sd))) |>
+  pivot_longer(cols = everything(), names_to = c("variable", ".value"), names_sep = "_") |>
+  (\(df) split(df, df$variable))() |>
+  lapply(\(x) list(mean = x$mean, std = x$std))
+
+# Convert to JSON
+cohort_stats_json <- toJSON(cohort_stats, pretty = TRUE)
+
+write(cohort_stats_json, file.path(here::here("data_and_models"), "nhanes_inputs/copula_outputs/cohort_summary_stats_final.json"))
+```
+
+Output calibration targets directly from NHANES
+```{r}
+nhanes <- nhanes |>
+  mutate(
+    agegrp = cut(RIDAGEYR, c(19, 24, 34, 44, 54, 64, 74, 84), labels = c("19-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75+")),
+    noplace = if_else(HUQ030 %in% c(2, 7, 9), 1, 0),
+  )
+nhanes_svy <- svydesign(
+  data = nhanes,
+  ids = ~SDMVPSU,
+  strata = ~SDMVSTRA,
+  weights = ~WTMEC6YR,
+  nest = TRUE
+)
+
+noplace_df <- svyby(~noplace, ~ agegrp + insurance + black, design = nhanes_svy, svymean)
+write_csv(
+  noplace_df,
+  file.path(here::here("data_and_models"), "nhanes_inputs/copula_outputs/nhanes_place_calibration_targets.csv")
+)
+```
+
+
