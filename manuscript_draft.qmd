@@ -431,7 +431,7 @@ This study was approved by the Stanford University Institutional Review Board.
 
 ## Data availability {.appendix .unnumbered}
 
-The data underlying this article cannot be shared publicly to protect the privacy of the individuals in the American Board of Family Medicine PRIME primary care electronic health record registry. The code to reproduce our results is available at: [MARIKA TO INSERT LINK].
+The data underlying this article cannot be shared publicly to protect the privacy of the individuals in the American Board of Family Medicine PRIME primary care electronic health record registry. The code to reproduce our results is available at [https://github.com/StanfordHPDS/hypertension-guideline-microsim](https://github.com/StanfordHPDS/hypertension-guideline-microsim).
 
 ## Author contributions {.appendix .unnumbered}
 Marika Cusick (Conceptualization, Methodology, Formal analysis, Visualization, Writing – original draft, Writing – review & editing), Malcolm Barrett (Formal analysis, Software, Writing – review & editing), Fernando Alarid-Escudero (Methodology, Writing  – review & editing), Douglas Owens (Conceptualization, Writing  – review & editing), Jeremy Goldhaber-Fiebert (Formal analysis, Methodology, Writing – review & editing), Sherri Rose (Conceptualization, Methodology, Supervision, Writing – original draft, Writing – review & editing, Funding acquisition)
