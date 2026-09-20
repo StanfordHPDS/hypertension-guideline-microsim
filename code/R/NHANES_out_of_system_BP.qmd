@@ -1,0 +1,255 @@
+---
+title: "NHANES out of system BP"
+format: html
+date: "today"
+---
+
+```{r}
+#| label: setup
+library(survey)
+library(tidyverse)
+library(quantreg)
+library(openxlsx)
+library(here)
+library(rsample)
+
+# set up data directory if needed
+data_dir <- here::here("data_and_models/nhanes_inputs/")
+if (!dir.exists(data_dir)) {
+  dir.create(data_dir)
+}
+```
+
+```{r}
+nhanes <- read_csv(here::here("data_and_models/nhanes_data_cohorts/nhanes.csv"))
+
+nhanes <- nhanes |>
+  mutate(
+    WTMEC6YR = WTMEC2YR / 3,
+    age_squared = RIDAGEYR^2,
+    female = if_else(RIAGENDR == 2, 1, 0),
+    black = if_else(RIDRETH3 == 4, 1, 0),
+    white = if_else(RIDRETH3 == 3, 1, 0),
+    hispanic = if_else(RIDRETH3 %in% c(1, 2), 1, 0),
+    asian = if_else(RIDRETH3 == 6, 1, 0),
+    other = if_else(RIDRETH3 == 7, 1, 0),
+    noplace = if_else(HUQ030 %in% c(2, 7, 9), 1, 0),
+    insurance = if_else(HIQ011 == 1, 1, 0),
+    treated = if_else(is.na(BPQ050A), 0, if_else(BPQ050A == 1, 1, 0)),
+    poor = if_else(INDFMPIR < 1, 1, 0),
+    education_L12 = ifelse(DMDEDUC2 == 1 | DMDEDUC2 == 2, 1, 0),
+    rented = ifelse(HOQ065 == 2, 1, 0),
+    notemployed = ifelse((INQ020 == 2 & INQ012 == 2) & RIDAGEYR < 65, 1, 0),
+    crowded = ifelse(DMDHHSIZ - HOD050 > 0, 1, 0),
+    singlefamily = ifelse((DMDHHSZA > 0 | DMDHHSZB > 0) & (DMDMARTL == 2 |
+      DMDMARTL == 3 |
+      DMDMARTL == 4 |
+      DMDMARTL == 5), 1, 0),
+    BPXSY1 = na_if(BPXSY1, 0),
+    BPXDI1 = na_if(BPXDI1, 0)
+  ) |>
+  filter(!is.na(RIDAGEYR), RIDAGEYR > 18)
+
+nhanes_svy <- svydesign(
+  data = nhanes,
+  ids = ~SDMVPSU,
+  strata = ~SDMVSTRA,
+  weights = ~WTMEC6YR,
+  nest = TRUE
+)
+```
+
+```{r}
+no_place_female <- nhanes_svy |>
+  subset(noplace == 0 & female == 1 & treated == 0)
+
+place_female <- nhanes_svy |>
+  subset(noplace == 1 & female == 1 & treated == 0)
+
+age_ranges <- seq(from = 50, to = 80, by = 5)
+
+calculate_svymean <- function(age_range, .svy) {
+  .svy <- subset(
+    .svy,
+    between(RIDAGEYR, age_range, age_range + 4)
+  )
+
+  svyby(
+    ~ BPXSY1 + BPXDI1,
+    ~ noplace + female,
+    .svy,
+    svymean,
+    na.rm = TRUE
+  ) |>
+    # wrangle the dataset to long format
+    # for better plotting of sex vs bp type over age range
+    as_tibble() |>
+    mutate(
+      noplace = factor(noplace, labels = c("No", "Yes")),
+      female = factor(female, labels = c("Male", "Female")),
+      age_range = paste0(age_range, "-", age_range + 4)
+    ) |>
+    select(age_range, noplace, female, systolic = BPXSY1, diastolic = BPXDI1) |>
+    pivot_longer(
+      c(systolic, diastolic),
+      names_to = "bp_type",
+      values_to = "bp"
+    )
+}
+
+nhanes_no_place <- nhanes_svy |>
+  subset(treated == 0)
+
+bps <- map(
+  age_ranges,
+  calculate_svymean,
+  .svy = nhanes_no_place
+) |>
+  list_rbind()
+
+bps |>
+  ggplot(
+    aes(age_range, bp, color = noplace, group = noplace)
+  ) +
+  geom_line() +
+  # colorblind-friendly color scale
+  ggokabeito::scale_color_okabe_ito() +
+  labs(
+    x = "Age",
+    y = "BP (mmHG)",
+    color = "Place for Routine\nHealth Care"
+  ) +
+  facet_grid(bp_type ~ female, scales = "free_y")
+```
+## Cross validation to determine the average mean squared error of these regressions
+```{r}
+set.seed(123)
+nhanes_no_treat <- nhanes |>
+  subset(treated == 0 & RIDAGEYR >= 40 & (black == 1 | white == 1))
+folds <- vfold_cv(nhanes_no_treat, v = 5)
+splits <- vfold_cv(nhanes_no_treat, v = 5, strata = SDMVSTRA) # stratify if possible
+```
+
+```{r}
+results_df <- data.frame(
+  iteration = integer(5), # integer column
+  mse_val = numeric(5),
+  rmse_val = numeric(5),
+  mae_val = numeric(5) # numeric column
+)
+column_list <- c(
+  "RIDAGEYR", "female", "noplace", "poor", "education_L12", "singlefamily", "crowded", "rented", "notemployed", "BPXSY1",
+  "BPXDI1"
+)
+for (i in 1:5) {
+  # Split the data
+  train_data <- analysis(folds$splits[[i]])
+  test_data <- assessment(folds$splits[[i]])
+
+  clean_test_data <- test_data[complete.cases(test_data[, column_list]), ]
+
+  train_design <- svydesign(id = ~SDMVPSU, strata = ~SDMVSTRA, weights = ~WTMEC6YR, data = train_data, nest = TRUE)
+
+  # Fit survey-weighted logistic regression
+  model <- svyglm(BPXDI1 ~ RIDAGEYR + female + noplace + poor + education_L12 + singlefamily + crowded
+    + rented + notemployed, design = train_design)
+
+  preds <- predict(model, newdata = clean_test_data)
+
+  actuals <- clean_test_data$BPXDI1
+
+  # Calculate metrics
+  results_df[i, "iteration"] <- i
+  results_df[i, "mse_val"] <- mean((actuals - preds)^2)
+  results_df[i, "rmse_val"] <- sqrt(mean((actuals - preds)^2))
+  results_df[i, "mae_val"] <- mean(abs(actuals - preds))
+}
+print(mean(results_df$mse_val))
+```
+
+```{r}
+quantiles <- seq(0.01, 0.99, by = 0.01)
+
+fit_sbp <- rq(
+  BPXSY1 ~ RIDAGEYR + female + noplace + poor + education_L12 + singlefamily + crowded
+    + rented + notemployed,
+  data = nhanes |>
+    filter(treated == 0 & RIDAGEYR >= 40),
+  tau = quantiles,
+  weights = WTMEC6YR,
+  method = "fn"
+)
+
+fit_dbp <- rq(
+  BPXDI1 ~ RIDAGEYR + female + noplace + poor + education_L12 + singlefamily + crowded
+    + rented + notemployed,
+  data = nhanes |>
+    filter(treated == 0 & RIDAGEYR >= 40),
+  tau = quantiles,
+  weights = WTMEC6YR,
+  method = "fn"
+)
+
+extract_qr_coefs <- function(fit) {
+  fit |>
+    coef() |>
+    t() |>
+    as_tibble(rownames = "term") |>
+    mutate(term = parse_number(term)) |>
+    set_names(
+      c(
+        "quantiles", "intercept", "age_beta",
+        "female_beta", "noplace_beta", "poor_beta",
+        "education_L12_beta", "singlefamily_beta",
+        "crowded_beta", "rented_beta", "notemployed_beta"
+      )
+    )
+}
+
+sbp_quantiles <- extract_qr_coefs(fit_sbp)
+dbp_quantiles <- extract_qr_coefs(fit_dbp)
+
+write_csv(sbp_quantiles, here::here("data_and_models/nhanes_inputs/out_of_system_sys_quantile_betas.csv"))
+write_csv(dbp_quantiles, here::here("data_and_models/nhanes_inputs/out_of_system_dia_quantile_betas.csv"))
+```
+
+```{r}
+sbp_quantiles |>
+  ggplot(aes(quantiles, noplace_beta)) +
+  geom_point() +
+  labs(
+    x = "Quantile",
+    y = "mmHg"
+  ) +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16)
+  )
+
+ggsave(here::here("figures/no_place_adjustments_SBP.png"), plot = last_plot(), width = 8, height = 6, dpi = 300)
+
+dbp_quantiles |>
+  ggplot(aes(quantiles, noplace_beta)) +
+  geom_point() +
+  labs(
+    x = "Quantile",
+    y = "mmHg"
+  ) +
+  theme_classic() +
+  theme(
+    axis.text = element_text(size = 16),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16)
+  )
+ggsave(here::here("figures/no_place_adjustments_DBP.png"), plot = last_plot(), width = 8, height = 6, dpi = 300)
+
+sbp_quantiles |>
+  summarise(mean = mean(noplace_beta), sd = sd(noplace_beta))
+
+dbp_quantiles |>
+  summarise(mean = mean(noplace_beta), sd = sd(noplace_beta))
+```
+
+

@@ -1,0 +1,164 @@
+---
+title: "NHANES download"
+format: html
+date: "today"
+---
+
+Download the 2013-2018 NHANES public datasets (demographics, healthcare
+utilization, health insurance, blood-pressure questionnaire, blood-pressure
+exam, household, income), left-join on `SEQN`, and write `nhanes.csv`. This is
+the raw data layer for both `NHANES_multivariate_copula.qmd` (which fits the
+copula + samples the simulated cohort) and `NHANES_out_of_system_BP.qmd` (which
+fits the out-of-system BP regressions).
+
+```{r}
+#| label: setup
+library(haven)
+library(here)
+library(purrr)
+library(dplyr)
+library(readr)
+
+data_dir <- here::here("data_and_models/nhanes_data_cohorts")
+if (!dir.exists(data_dir)) {
+  dir.create(data_dir)
+}
+```
+
+```{r}
+#| label: helpers
+download_and_read_xpt <- function(url) {
+  .tf <- tempfile()
+  download.file(url, .tf, mode = "wb")
+
+  read_xpt(.tf)
+}
+
+load_nhanes_and_select <- function(urls, ...) {
+  map(urls, download_and_read_xpt) |>
+    list_rbind() |>
+    select(...)
+}
+```
+
+## Demographics 2013-2018
+
+```{r}
+#| label: load_demographics
+demographic_urls <- c(
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/DEMO_J.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2015/DataFiles/DEMO_I.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/DEMO_H.xpt"
+)
+
+demo <- load_nhanes_and_select(
+  demographic_urls,
+  SEQN, RIAGENDR, RIDAGEYR, SDMVSTRA,
+  SDMVPSU, WTMEC2YR, RIDRETH3, INDFMPIR, DMDEDUC2, DMDHHSIZ, DMDMARTL,
+  DMDHHSZA, DMDHHSZB
+)
+```
+
+## Healthcare utilization questions 2013-2018
+
+```{r}
+#| label: load_huq
+huq_urls <- c(
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/HUQ_J.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2015/DataFiles/HUQ_I.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/HUQ_H.xpt"
+)
+
+huq <- load_nhanes_and_select(
+  huq_urls,
+  SEQN, HUQ030, HUQ041, HUQ051, HUQ061
+)
+```
+
+## Health insurance 2013-2018
+
+```{r}
+#| label: load_hiq
+hiq_urls <- c(
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/HIQ_J.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2015/DataFiles/HIQ_I.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/HIQ_H.xpt"
+)
+
+hiq <- load_nhanes_and_select(
+  hiq_urls,
+  SEQN, HIQ011
+)
+```
+
+## Blood pressure questions 2013-2018
+
+```{r}
+#| label: load_bpq
+bpq_urls <- c(
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/BPQ_J.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2015/DataFiles/BPQ_I.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/BPQ_H.xpt"
+)
+
+bpq <- load_nhanes_and_select(
+  bpq_urls,
+  SEQN, BPQ020, BPQ030, BPQ040A, BPQ050A
+)
+```
+
+# Blood pressure lab values 2013-2018
+
+```{r}
+#| label: load_bpx
+bpx_urls <- c(
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/BPX_J.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2015/DataFiles/BPX_I.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/BPX_H.xpt"
+)
+
+bpx <- load_nhanes_and_select(
+  bpx_urls,
+  SEQN, BPXSY1, BPXDI1
+)
+```
+
+# Household characteristics 2013-2018
+
+```{r}
+#| label: load_hoq
+hoq_urls <- c(
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/HOQ_J.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2015/DataFiles/HOQ_I.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/HOQ_H.xpt"
+)
+
+hoq <- load_nhanes_and_select(
+  hoq_urls,
+  SEQN, HOD050, HOQ065
+)
+```
+
+# Income 2013-2018
+
+```{r}
+#| label: load_inq
+inq_urls <- c(
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/INQ_J.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2015/DataFiles/INQ_I.xpt",
+  "https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/INQ_H.xpt"
+)
+
+inq <- load_nhanes_and_select(
+  inq_urls,
+  SEQN, INQ020, INQ012
+)
+```
+
+```{r}
+#| label: join_and_write
+nhanes_data <- list(demo, huq, hiq, bpq, bpx, hoq, inq) |>
+  reduce(left_join, by = "SEQN")
+
+write_csv(nhanes_data, file.path(data_dir, "nhanes.csv"))
+```
