@@ -1,5 +1,6 @@
-# hypertension-guideline-microsim
-Repository for the paper "Hypertension Disease Natural History and Healthcare Utilization When Treatment Guidelines Do Not Account for Race"
+# Hypertension Disease Natural History and Healthcare Utilization When Treatment Guidelines Do Not Account for Race
+
+This repository contains code for the paper "Hypertension Disease Natural History and Healthcare Utilization When Treatment Guidelines Do Not Account for Race"
 
 ## Environment setup
 
