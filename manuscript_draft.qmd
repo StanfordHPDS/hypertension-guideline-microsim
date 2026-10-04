@@ -421,7 +421,7 @@ The authors declare no potential conflicts of interest with respect to the resea
 
 ## Funding statement {.appendix .unnumbered}
 
-Financial support for this study was provided by the National Institutes of Health and a Stanford Interdisciplinary Graduate Fellowship. Marika Cusick, Fernando Alarid-Escudero, Jeremy D. Goldhaber-Fiebert and Sherri Rose were supported by NIH Director's Pioneer Award DP1LM014278. Marika Cusick was additionally supported by the Stanford Interdisciplinary Graduate Fellowship. The funding agencies had no role in the design of the study, interpretation of results, or writing of the manuscript. The funding agreement ensured the authors’ independence in designing the study, interpreting the data, writing, and publishing the report.
+Financial support for this study was provided by the National Institutes of Health. Marika Cusick, Malcolm Barrett, Fernando Alarid-Escudero, Jeremy D. Goldhaber-Fiebert and Sherri Rose were supported by NIH Director's Pioneer Award DP1LM014278. The funding agencies had no role in the design of the study, interpretation of results, or writing of the manuscript. The funding agreement ensured the authors’ independence in designing the study, interpreting the data, writing, and publishing the report.
 
 ## Ethics statement {.appendix .unnumbered}
 This study was approved by the Stanford University Institutional Review Board.
