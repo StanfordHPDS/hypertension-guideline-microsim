@@ -1,6 +1,6 @@
 # Hypertension disease natural history and healthcare utilization when treatment guidelines do not account for race
 
-This repository contains code for the paper "Hypertension disease natural history and healthcare utilization when treatment guidelines do not account for race" by Marika Cusick, Malcolm Barrett, Fernando Alarid-Escudero, Jeremy Goldhaber-Fiebert, and Sherri Rose. 
+This repository contains code for the paper "Hypertension disease natural history and healthcare utilization when treatment guidelines do not account for race" by Marika Cusick, Malcolm Barrett, Fernando Alarid-Escudero, Jeremy Goldhaber-Fiebert, and Sherri Rose. The preprint for our paper is on [medRxiv](https://www.medrxiv.org/content/10.64898/2026.10.05.26364804v1).
 
 In this analysis, we use simulation modeling to evaluate the impact of removing race-adjusted antihypertensive treatment recommendations for Black adults on health outcomes, healthcare utilization, and racial/ethic disparities.
 
