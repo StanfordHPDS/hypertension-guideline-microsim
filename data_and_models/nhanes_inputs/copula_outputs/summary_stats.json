@@ -1,0 +1,62 @@
+{
+  "age": {
+    "mean": [49.5162],
+    "std": [17.6063]
+  },
+  "black": {
+    "mean": [0.1429],
+    "std": [0.35]
+  },
+  "crowded": {
+    "mean": [0.0378],
+    "std": [0.1906]
+  },
+  "diastolicbp": {
+    "mean": [70.8585],
+    "std": [10.9376]
+  },
+  "educationL12": {
+    "mean": [0.084],
+    "std": [0.2774]
+  },
+  "female": {
+    "mean": [0.5137],
+    "std": [0.4998]
+  },
+  "insurance": {
+    "mean": [0.8639],
+    "std": [0.3429]
+  },
+  "notemployed": {
+    "mean": [0.0598],
+    "std": [0.2372]
+  },
+  "place": {
+    "mean": [0.8151],
+    "std": [0.3882]
+  },
+  "poor": {
+    "mean": [0.1213],
+    "std": [0.3265]
+  },
+  "povertyratio": {
+    "mean": [3.4502],
+    "std": [1.3793]
+  },
+  "rented": {
+    "mean": [0.307],
+    "std": [0.4612]
+  },
+  "singlefamily": {
+    "mean": [0.0996],
+    "std": [0.2995]
+  },
+  "systolicbp": {
+    "mean": [120.0891],
+    "std": [15.504]
+  },
+  "visits": {
+    "mean": [3.6537],
+    "std": [2.5122]
+  }
+}
