@@ -29,7 +29,7 @@ format:
   html: default
   docx: default
 engine: jupyter
-csl: jamia.csl
+csl: american-medical-association.csl
 crossref:
   custom:
     - kind: float
@@ -103,24 +103,22 @@ with open(f"results/{folder}/cohort_outcomes/standard/race_group_nohetero_NR.pkl
 
 **Objective:** To estimate the impact of removing race-adjusted antihypertensive treatment recommendations for Black adults on health outcomes, healthcare utilization, and racial/ethnic disparities.  
 
-**Materials and methods:** A discrete-time state-transition microsimulation model of hypertension natural history and health system utilization was developed to simulate lifetime trajectories among 100,000 non-Hispanic Black and non-Hispanic white 40-year-old adults. We evaluated the effect of removing race-adjusted antihypertensive treatment recommendations under two scenarios: one assuming racial heterogeneity in treatment effectiveness, reflecting evidence behind prior race-specific guidelines, and the other assuming no racial heterogeneity. Our main outcomes included life expectancy, cumulative incidence and duration of hypertension, and blood pressure control with antihypertensive treatment.
+**Study Setting and Design:** We conducted a decision-analytic modeling study using a discrete-time state-transition microsimulation of hypertension natural history and health system utilization. We evaluated the effect of removing race-adjusted antihypertensive treatment recommendations under two scenarios: one assuming racial heterogeneity in treatment effectiveness, reflecting evidence behind prior race-specific guidelines, and the other assuming no racial heterogeneity. Main outcomes included life expectancy, cumulative incidence and duration of hypertension, and blood pressure control with antihypertensive treatment.
 
-**Results:** Under assumptions of heterogeneous treatment effectiveness by race, guidelines without race adjustment decreased life expectancy among non-Hispanic Black adults by `{python} round(round(standard_race_hetero_nr_dict['Difference']['years_to_death'][0], ROUND_DIGITS) - round(standard_race_hetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS), ROUND_DIGITS)` years, increasing the life expectancy gap with non-Hispanic white adults from `{python} round(standard_race_hetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS)` to `{python} round(standard_race_hetero_nr_dict['Difference']['years_to_death'][0], ROUND_DIGITS)` years. Hypertension control among non-Hispanic Black adults also worsened. Years with uncontrolled hypertension increased by `{python} -(round(standard_race_hetero_nr_dict['Difference']['years_sick_treated'][0] - standard_race_hetero_ra_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS))` years, widening the disparity with non-Hispanic white adults from `{python} -round(standard_race_hetero_ra_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS)` to `{python} -round(standard_race_hetero_nr_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS)` years. Assuming no racial heterogeneity, these effects were diminished: life expectancy decreased by `{python} round(standard_race_nohetero_nr_dict['Difference']['years_to_death'][0] - standard_race_nohetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS)` years and years with uncontrolled hypertension increased by `{python} -(round(standard_race_nohetero_nr_dict['Difference']['years_sick_treated'][0] - standard_race_nohetero_ra_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS))` years, less than one-half and one-quarter of the effects observed under assumptions of heterogeneous treatment effectiveness by race. 
+**Data Sources and Analytic Sample:** The microsimulation simulated lifetime trajectories among 100,000 non-Hispanic Black and non-Hispanic white 40-year-old adults. Model parameters were derived from multiple data sources, including the 2013-2018 National Health and Nutrition Examination Survey, the American Board of Family Medicine PRIME primary care electronic health record registry from 2018 and 2024, 2021 U.S. life tables, and published literature.
 
-**Discussion:** The potential effects of removing race-adjusted antihypertensive treatment guidelines depended on assumptions of racial heterogeneity in treatment effectiveness.
+**Principal Findings:** Under assumptions of heterogeneous treatment effectiveness by race, guidelines without race adjustment decreased life expectancy among non-Hispanic Black adults by `{python} round(round(standard_race_hetero_nr_dict['Difference']['years_to_death'][0], ROUND_DIGITS) - round(standard_race_hetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS), ROUND_DIGITS)` years, increasing the life expectancy gap with non-Hispanic white adults from `{python} round(standard_race_hetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS)` to `{python} round(standard_race_hetero_nr_dict['Difference']['years_to_death'][0], ROUND_DIGITS)` years. Hypertension control among non-Hispanic Black adults also worsened. Years with uncontrolled hypertension increased by `{python} -(round(standard_race_hetero_nr_dict['Difference']['years_sick_treated'][0] - standard_race_hetero_ra_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS))` years, widening the disparity with non-Hispanic white adults from `{python} -round(standard_race_hetero_ra_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS)` to `{python} -round(standard_race_hetero_nr_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS)` years. Assuming no racial heterogeneity, these effects were diminished: life expectancy decreased by `{python} round(standard_race_nohetero_nr_dict['Difference']['years_to_death'][0] - standard_race_nohetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS)` years and years with uncontrolled hypertension increased by `{python} -(round(standard_race_nohetero_nr_dict['Difference']['years_sick_treated'][0] - standard_race_nohetero_ra_dict['Difference']['years_sick_treated'][0], ROUND_DIGITS))` years, less than one-half and one-quarter of the effects observed under assumptions of heterogeneous treatment effectiveness by race. 
 
-**Conclusion:** Our findings highlight the importance of understanding drivers of previously observed racial differences when considering modifying antihypertensive treatment guidelines.
+**Conclusions:** The potential effects of removing race-adjusted antihypertensive treatment guidelines depended on assumptions of racial heterogeneity in treatment effectiveness. Our findings highlight the importance of understanding drivers of previously observed racial differences when considering modifying antihypertensive treatment guidelines.
 
-**Word count:** 3,424 words
+**Word count:** 3,444 words
 
-## Background and significance
+## Introduction
 Hypertension affects nearly half of American adults and is a major driver of cardiovascular mortality in the U.S.[@navar2016temporal] The burden of hypertension is not shared equally across the population. Non-Hispanic Black adults have a higher prevalence of hypertension compared with non-Hispanic white, non-Hispanic Asian, and Hispanic adults.[@aggarwal2021racial; @muntner2018potential] Furthermore, only one in four adults with hypertension achieve recommended blood pressure targets,[@cdc2023million] and rates of blood pressure control are lower among non-Hispanic Black, Hispanic, and non-Hispanic Asian adults compared with non-Hispanic white adults.[@muntner2020trends] Previous research suggests that variation in hypertension control is shaped by socioeconomic factors, including income, insurance status, or educational attainment.[@cdc2023million;@muntner2020trends]
 
 Most adults with hypertension are advised to make lifestyle modifications and initiate antihypertensive treatment to lower blood pressure and reduce the risk of cardiovascular events.[@cdc2023million;@whelton20182017] The Antihypertensive and Lipid-Lowering Treatment to Prevent Heart Attack Trial (ALLHAT), conducted between 1994 and 2002, compared antihypertensive medication classes in preventing major cardiovascular events. Subgroup analyses from ALLHAT revealed heterogeneity in antihypertensive treatment effectiveness between Black and non-Black adults.[@wright2005outcomes;@leenen2006clinical;@wright2008clinical] These findings informed race-specific pharmacologic therapy recommendations for Black adults in major clinical practice guidelines, such as the 2014 Eighth Joint National Committee, 2017 American Heart Association (AHA)/American College of Cardiology (ACC), and 2018 European Society of Cardiology guidelines.[@whelton20182017;@james20142014;@williams20182018]
 
 However, the inclusion of race in clinical algorithms and practice guidelines has faced growing criticism for propagating racial bias in clinical decision-making and exacerbating health disparities.[@vyas2020hidden; @cerdena2020race; @neal2021racial] In response, national organizations have removed race or ethnicity-based adjustments from some clinical equations.[@wright2022eliminating;@borrell2021race; @inker2021new; @khan2024development; @ndumele2025role] Recently, the 2025 AHA/ACC guidelines on the prevention, detection, evaluation, and management of high blood pressure in adults removed race-specific recommendations for antihypertensive treatment.[@writing20252025] 
-
-## Objective
 
 The implications of removing race-adjusted antihypertensive treatment recommendations for health outcomes and racial/ethnic disparities remain unclear, in particular given uncertainty in the existence of racial heterogeneity in treatment effectiveness. Rigorous evaluations of clinical guideline changes are critical to assess their potential impact and minimize unintended harm.[@rose2025ai] In this study, we developed a microsimulation model to estimate the impact of removing race-adjusted recommendations on health outcomes, healthcare utilization, and racial/ethnic disparities between non-Hispanic Black and non-Hispanic white adults. To reflect the uncertainty of racial heterogeneity in treatment effectiveness, we considered two scenarios: one assuming race-specific treatment effects and another assuming equal effectiveness across racial groups. 
 
@@ -128,30 +126,13 @@ The implications of removing race-adjusted antihypertensive treatment recommenda
 
 ### Microsimulation model overview
 
-Our discrete-time state-transition microsimulation model had two interacting processes: disease natural history and health system utilization (@fig-model-diagram). The disease natural history process simulated individual systolic and diastolic blood pressure trajectories and progression to death. The health system process tracked individuals through three stages: in the health system (with routine place for healthcare), detected and treated for hypertension, and discontinued treatment.
+ We conducted a decision-analytic modeling study using a discrete-time state transition microsimulation model. The microsimulation model had two interacting processes: disease natural history and health system utilization (@fig-model-diagram). The disease natural history process simulated individual systolic and diastolic blood pressure trajectories and progression to death. The health system process tracked individuals through three stages: in the health system (with routine place for healthcare), detected and treated for hypertension, and discontinued treatment.
 
 ![Model diagram of state-transition microsimulation model of hypertension disease natural history and health system utilization](figures/model_diagram.png){#fig-model-diagram}
 
 ### Data sources
 
-Multiple data sources were used to parameterize our microsimulation model (@tbl-base-case). To obtain a simulation cohort representative of U.S. adults, we relied on survey data from the 2013-2014, 2015-2016, and 2017-2018 years of the National Health and Nutrition Examination Survey (NHANES).[@CDC2018] We sampled one million blood pressure measurements between January 2018 and June 2024 from the American Board of Family Medicine PRIME primary care electronic health record registry to estimate model transitions in hypertension natural history and health system utilization.[@phillips2017prime; @afcdata2026] Baseline mortality rates were derived from 2021 age-, sex-, race-, and ethnicity-specific life tables.[@arias2023united] Remaining model parameters, including the effectiveness of antihypertensive treatments in lowering blood pressure, antihypertensive monotherapy utilization, and treatment discontinuation rates, were obtained from published literature as cited.
-
-| Parameter  | Dependencies | Data |
-|------------------------|------------------------|------------------------|
-| Simulation cohort | Age, sex, race/ethnicity, systolic and diastolic blood pressure values | NHANES [@CDC2018] |
-| *Disease natural history parameters* |  |  |
-| Systolic blood pressure values | Age, sex | PRIME [@phillips2017prime; @afcdata2026] |
-| Diastolic blood pressure values | Age, sex | PRIME [@phillips2017prime; @afcdata2026] |
-| Hypertension mortality risk (hazard ratio) | Systolic and diastolic blood pressure values | Hansen et al. [@hansen2005ambulatory] |
-| Baseline mortality rates | Age, sex, race/ethnicity | 2021 U.S. life tables [@arias2023united] |
-| *Health system utilization parameters* |  |  |
-| Transition to detected/treated | Age, sex, systolic and diastolic blood pressure values | PRIME [@phillips2017prime; @afcdata2026] |
-| Transition to discontinued treatment | Type of antihypertensive therapy | ALLHAT @antihypertensive2002major  |
-| *Antihypertensive treatment parameters* |  |  |
-| Antihypertensive monotherapy utilization | Race/ethnicity (when using treatment guidelines that vary by race/ethnicity) | Holt et al. [@holt2022differences] |
-| Antihypertensive treatment blood pressure reductions | Race/ethnicity (if heterogeneous effects are assumed), type of antihypertensive treatment | ALLHAT [@antihypertensive2002major] |
-
-: Model parameter dependencies and data sources {#tbl-base-case}
+Multiple data sources were used to parameterize our microsimulation model (@supptbl-base-case). To obtain a simulation cohort representative of U.S. adults, we relied on survey data from the 2013-2014, 2015-2016, and 2017-2018 years of the National Health and Nutrition Examination Survey (NHANES).[@CDC2018] We sampled one million blood pressure measurements between January 2018 and June 2024 from the American Board of Family Medicine PRIME primary care electronic health record registry to estimate model transitions in hypertension natural history and health system utilization.[@phillips2017prime; @afcdata2026] Baseline mortality rates were derived from 2021 age-, sex-, race-, and ethnicity-specific life tables.[@arias2023united] Remaining model parameters, including the effectiveness of antihypertensive treatments in lowering blood pressure, antihypertensive monotherapy utilization, and treatment discontinuation rates, were obtained from published literature as cited.
 
 ### Simulation cohort {#sec-simulation-cohort}
 
@@ -191,7 +172,7 @@ To validate the hypertension disease natural history process, we simulated a hyp
 
 ### Secondary analysis
 
-In a secondary analysis, we leveraged the previously published social factors framework, a decision-modeling approach for health policy analyses when outcomes are influenced by both disease and social processes.[@cusick2026novel] Two social factors were additionally modeled in our microsimulation model: health insurance status and census tract-level social deprivation index (SDI) ([Section S @sec-secondary-analysis], @suppfig-model-diagram, @supptbl-base-case). Census tract-level SDI served as a proxy for socioeconomic status and captured geographic variation in hypertension prevalence, awareness, and control.[@cdc2023million; @muntner2020trends] The updated model included a fourth health system stage, out of the health system, representing individuals without a routine place for healthcare. At model initiation, synthetic individuals were assigned a census tract-level SDI, insurance status, and an initial health system state ([Section S @sec-multi-copula], [Section S @sec-sdi-assignment]).[@butler2013measures]. After age 65, all simulated individuals were assumed to have insurance through Medicare coverage. 
+In a secondary analysis, we leveraged the previously published social factors framework, a decision-modeling approach for health policy analyses when outcomes are influenced by both disease and social processes.[@cusick2026novel] Two social factors were additionally modeled in our microsimulation model: health insurance status and census tract-level social deprivation index (SDI) ([Section S @sec-secondary-analysis], @suppfig-model-diagram, @supptbl-base-case-sff). Census tract-level SDI served as a proxy for socioeconomic status and captured geographic variation in hypertension prevalence, awareness, and control.[@cdc2023million; @muntner2020trends] The updated model included a fourth health system stage, out of the health system, representing individuals without a routine place for healthcare. At model initiation, synthetic individuals were assigned a census tract-level SDI, insurance status, and an initial health system state ([Section S @sec-multi-copula], [Section S @sec-sdi-assignment]).[@butler2013measures]. After age 65, all simulated individuals were assumed to have insurance through Medicare coverage. 
 
 To incorporate the impact of the social factors on disease natural history, we modified several model parameters and transition probability dependencies. Baseline mortality rates were further adjusted by insurance status.[@wilper2009health;@kronick2009health;@tolbert2024uninsured] Having no health insurance increased baseline mortality rates, assuming a hazard ratio for increased mortality risk among those uninsured ([Section S @sec-mortality-insurance]). We predicted systolic and diastolic blood pressure trajectories as a function of age, sex, and census tract-level SDI ([Section S @sec-sys-dia-regressions], [Section S @sec-sys-dia-correlations]).
 
@@ -379,9 +360,7 @@ nohetero_NR_hyp_control = pd.read_csv(f"results/{folder}/cohort_outcomes/social/
 
 ```
 
-Insurance coverage was higher among non-Hispanic white 40-year-old adults (`{python} convert_to_percent(demo_dict_NHW['insurance'][0])`%) than among non-Hispanic Black 40-year-old adults (`{python} convert_to_percent(demo_dict_NHB['insurance'][0])`%). Mean census tract-level SDI was also higher for non-Hispanic Black adults (`{python} round(demo_dict_NHB['SDI'][0], ROUND_DIGITS)`) compared to non-Hispanic white adults (`{python} round(demo_dict_NHW['SDI'][0], ROUND_DIGITS)`), reflecting greater neighborhood disadvantage (@supptbl-sff-cohort). Incorporating census tract-level SDI and insurance coverage reduced overall treatment access. The overall incidence of treatment dropped from `{python} convert_to_percent(standard_hetero_ra_dict['cum_inc_treated'][0])`% in the main analysis to `{python} convert_to_percent(hetero_ra_dict['cum_inc_treated'][0])`%. While treatment incidence did not differ by race, it differed by insurance status (@supptbl-sff-main-results). Among those without insurance, `{python} convert_to_percent(race_ins_hetero_ra_dict[(0,'NHB')]['cum_inc_treated'][0])`% and  `{python} convert_to_percent(race_ins_hetero_ra_dict[(0,'NHW')]['cum_inc_treated'][0])`% of non-Hispanic Black and non-Hispanic white adults initiated treatment, compared to `{python} convert_to_percent(race_ins_hetero_ra_dict[(1,'NHB')]['cum_inc_treated'][0])`% and `{python} convert_to_percent(race_ins_hetero_ra_dict[(1,'NHW')]['cum_inc_treated'][0])`% of insured non-Hispanic Black and non-Hispanic white adults (@fig-cum-incidence-treatment). 
-
-![Cumulative incidence of antihypertensive treatment for non-Hispanic Black and non-Hispanic white 40-year-old adults by insurance status](figures/social/cum_inc_treated_hetero_RA.png){#fig-cum-incidence-treatment}
+Insurance coverage was higher among non-Hispanic white 40-year-old adults (`{python} convert_to_percent(demo_dict_NHW['insurance'][0])`%) than among non-Hispanic Black 40-year-old adults (`{python} convert_to_percent(demo_dict_NHB['insurance'][0])`%). Mean census tract-level SDI was also higher for non-Hispanic Black adults (`{python} round(demo_dict_NHB['SDI'][0], ROUND_DIGITS)`) compared to non-Hispanic white adults (`{python} round(demo_dict_NHW['SDI'][0], ROUND_DIGITS)`), reflecting greater neighborhood disadvantage (@supptbl-sff-cohort). Incorporating census tract-level SDI and insurance coverage reduced overall treatment access. The overall incidence of treatment dropped from `{python} convert_to_percent(standard_hetero_ra_dict['cum_inc_treated'][0])`% in the main analysis to `{python} convert_to_percent(hetero_ra_dict['cum_inc_treated'][0])`%. While treatment incidence did not differ by race, it differed by insurance status (@supptbl-sff-main-results). Among those without insurance, `{python} convert_to_percent(race_ins_hetero_ra_dict[(0,'NHB')]['cum_inc_treated'][0])`% and  `{python} convert_to_percent(race_ins_hetero_ra_dict[(0,'NHW')]['cum_inc_treated'][0])`% of non-Hispanic Black and non-Hispanic white adults initiated treatment, compared to `{python} convert_to_percent(race_ins_hetero_ra_dict[(1,'NHB')]['cum_inc_treated'][0])`% and `{python} convert_to_percent(race_ins_hetero_ra_dict[(1,'NHW')]['cum_inc_treated'][0])`% of insured non-Hispanic Black and non-Hispanic white adults (@suppfig-sff-cum-incidence-treatment). 
 
 #### Heterogeneity in treatment effectiveness by race
 Under guidelines without race adjustment, life expectancy among non-Hispanic Black adults decreased by `{python} round(race_hetero_nr_dict['Difference']['years_to_death'][0] - race_hetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS)` years, from `{python} create_95_CI(race_hetero_ra_dict['NHB']['years_to_death'], "years")` to `{python} create_95_CI(race_hetero_nr_dict['NHB']['years_to_death'], "years")`, although with overlapping confidence intervals. This effect was similar to the `{python} round(round(standard_race_hetero_nr_dict['Difference']['years_to_death'][0], ROUND_DIGITS) - round(standard_race_hetero_ra_dict['Difference']['years_to_death'][0], ROUND_DIGITS), ROUND_DIGITS)`-year effect observed in the main analysis (@supptbl-sff-results-by-race, @suppfig-sff-results-race). Because insured non-Hispanic Black adults had greater treatment access, they were more likely to be affected by the prescribing shift towards ACE inhibitors. The average decline in life expectancy was `{python} round(race_ins_hetero_ra_dict[(1,'NHB')]['years_to_death'][0] - race_ins_hetero_nr_dict[(1,'NHB')]['years_to_death'][0], ROUND_DIGITS)` years for non-Hispanic Black adults with insurance compared to `{python} round(race_ins_hetero_ra_dict[(0,'NHB')]['years_to_death'][0] - race_ins_hetero_nr_dict[(0,'NHB')]['years_to_death'][0], ROUND_DIGITS)` years for those without insurance (@supptbl-main-results-by-race-insurance). We observed a similar pattern in hypertension control. Years spent with uncontrolled hypertension increased by `{python} round(race_ins_hetero_nr_dict[(1,'NHB')]['years_sick_treated'][0] - race_ins_hetero_ra_dict[(1,'NHB')]['years_sick_treated'][0], ROUND_DIGITS)` years and `{python} round(race_ins_hetero_nr_dict[(0,'NHB')]['years_sick_treated'][0] - race_ins_hetero_ra_dict[(0,'NHB')]['years_sick_treated'][0], ROUND_DIGITS)` years among non-Hispanic Black adults with and without insurance, respectively. 
@@ -434,6 +413,26 @@ The data underlying this article cannot be shared publicly to protect the privac
 Marika Cusick (Conceptualization, Methodology, Formal analysis, Visualization, Writing – original draft, Writing – review & editing), Malcolm Barrett (Formal analysis, Software, Writing – review & editing), Fernando Alarid-Escudero (Methodology, Writing  – review & editing), Jeremy Goldhaber-Fiebert (Conceptualization, Formal analysis, Methodology, Writing – review & editing), Sherri Rose (Conceptualization, Methodology, Supervision, Writing – original draft, Writing – review & editing, Funding acquisition)
 
 ## Supplement {.appendix}
+
+### Microsimulation model parameters {#sec-base-case-param .appendix}
+
+:::{#supptbl-base-case}
+| Parameter  | Dependencies | Data |
+|------------------------|------------------------|------------------------|
+| Simulation cohort | Age, sex, race/ethnicity, systolic and diastolic blood pressure values | NHANES [@CDC2018] |
+| *Disease natural history parameters* |  |  |
+| Systolic blood pressure values | Age, sex | PRIME [@phillips2017prime; @afcdata2026] |
+| Diastolic blood pressure values | Age, sex | PRIME [@phillips2017prime; @afcdata2026] |
+| Hypertension mortality risk (hazard ratio) | Systolic and diastolic blood pressure values | Hansen et al. [@hansen2005ambulatory] |
+| Baseline mortality rates | Age, sex, race/ethnicity | 2021 U.S. life tables [@arias2023united] |
+| *Health system utilization parameters* |  |  |
+| Transition to detected/treated | Age, sex, systolic and diastolic blood pressure values | PRIME [@phillips2017prime; @afcdata2026] |
+| Transition to discontinued treatment | Type of antihypertensive therapy | ALLHAT @antihypertensive2002major  |
+| *Antihypertensive treatment parameters* |  |  |
+| Antihypertensive monotherapy utilization | Race/ethnicity (when using treatment guidelines that vary by race/ethnicity) | Holt et al. [@holt2022differences] |
+| Antihypertensive treatment blood pressure reductions | Race/ethnicity (if heterogeneous effects are assumed), type of antihypertensive treatment | ALLHAT [@antihypertensive2002major] |
+Model parameter dependencies and data sources 
+:::
 
 ### Multivariate copula {#sec-multi-copula .appendix}
 
@@ -845,7 +844,7 @@ Cumulative incidence of hypertension (defined as systolic blood pressure $\geq$ 
 
 ### Secondary analysis with the social factors framework  {#sec-secondary-analysis .appendix}
 
-Using a previously developed social factors framework,[@cusick2026novel] we modeled the impact of two social factors: health insurance status and census tract-level SDI, as demonstrated in the model diagram (@suppfig-model-diagram) and model transition probabilities (@supptbl-base-case). Sections @sec-sdi-assignment, @sec-mortality-insurance, @sec-transition-in-system, and @sec-out-of-system-BP describe additional changes to the model for our secondary analysis with the social factors framework.
+Using a previously developed social factors framework,[@cusick2026novel] we modeled the impact of two social factors: health insurance status and census tract-level SDI, as demonstrated in the model diagram (@suppfig-model-diagram) and model transition probabilities (@supptbl-base-case-sff). Sections @sec-sdi-assignment, @sec-mortality-insurance, @sec-transition-in-system, and @sec-out-of-system-BP describe additional changes to the model for our secondary analysis with the social factors framework.
 
 ::: {#suppfig-model-diagram}
 ![](figures/model_diagram_social_factors.png)
@@ -853,7 +852,7 @@ Using a previously developed social factors framework,[@cusick2026novel] we mode
 Model diagram of state-transition microsimulation model with social factors framework
 :::
 
-::: {#supptbl-base-case}
+::: {#supptbl-base-case-sff}
 | Parameter | Dependencies | Data |
 |------------------------|------------------------|------------------------|
 | Simulation cohort | Age, sex, race/ethnicity, place for routine healthcare, insurance status, systolic and diastolic blood pressure values | NHANES [@CDC2018] |
@@ -869,7 +868,6 @@ Model diagram of state-transition microsimulation model with social factors fram
 | Transition to detected/treated | Age, sex, SDI, systolic and diastolic blood pressure values | PRIME [@phillips2017prime; @afcdata2026] |
 | Transition to discontinued treatment | Insurance status, type of antihypertensive therapy | ALLHAT @antihypertensive2002major  |
 | *Antihypertensive treatment parameters* |  |  |
-| ACE inhibitor all-cause mortality (hazard ratio) |  | [@brenner2001effects; @ruggenenti1999renoprotective] |
 | Antihypertensive monotherapy utilization | Race/ethnicity (when using treatment guidelines that vary by race/ethnicity) | Holt et al. [@holt2022differences] |
 | Antihypertensive treatment blood pressure reductions | Race/ethnicity (if heterogeneous effects are assumed), type of antihypertensive treatment | ALLHAT [@antihypertensive2002major] |
 
@@ -1008,6 +1006,11 @@ Demographic and clinical characteristics of simulation cohort by race in seconda
 Main outcomes comparing antihypertensive treatment guidelines with and without race adjustment in secondary analysis (Mean [Monte Carlo standard error])
 :::
 
+:::{#suppfig-sff-cum-incidence-treatment}
+![ ](figures/social/cum_inc_treated_hetero_RA.png)
+
+Cumulative incidence of antihypertensive treatment for non-Hispanic Black and non-Hispanic white 40-year-old adults by insurance status
+:::
 
 ::: {#suppfig-sff-results-race layout-nrow="2"}
 ![ ](figures/social/main_results_by_race_years_to_death.png){#suppfig-second-le}
